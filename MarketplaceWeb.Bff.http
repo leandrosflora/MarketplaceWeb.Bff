@@ -1,6 +1,22 @@
-@MarketplaceWeb.Bff_HostAddress = http://localhost:5164
+@MarketplaceWeb_Bff_HostAddress = https://localhost:7171
+@skuId = 00000000-0000-0000-0000-000000000001
+@orderId = 00000000-0000-0000-0000-000000000002
+@shipmentId = 00000000-0000-0000-0000-000000000003
 
-GET {{MarketplaceWeb.Bff_HostAddress}}/weatherforecast/
+GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/products/{{skuId}}/page?zipCode=05726100&quantity=1
 Accept: application/json
 
 ###
+
+GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/orders/{{orderId}}
+Accept: application/json
+
+###
+
+GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/orders/{{orderId}}/tracking
+Accept: application/json
+
+###
+
+GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/shipments/{{shipmentId}}/label
+Accept: application/pdf
