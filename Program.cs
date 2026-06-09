@@ -89,12 +89,12 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<CorrelationIdHandler>();
 builder.Services.AddTransient<AccessTokenHandler>();
 
-AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromMilliseconds(700));
-AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromMilliseconds(900));
+AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromSeconds(1));
 AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, "Checkout", TimeSpan.FromSeconds(2));
-AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, "Order", TimeSpan.FromMilliseconds(800));
-AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, "Shipment", TimeSpan.FromMilliseconds(800));
-AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, "Tracking", TimeSpan.FromMilliseconds(800));
+AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, "Order", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, "Shipment", TimeSpan.FromSeconds(1));
+AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, "Tracking", TimeSpan.FromSeconds(1));
 
 builder.Services.AddScoped<ProductPageComposer>();
 builder.Services.AddScoped<OrderPageComposer>();
@@ -139,6 +139,10 @@ static void AddDownstreamClient<TInterface, TImplementation>(
     where TInterface : class
     where TImplementation : class, TInterface
 {
+    var resilienceAttemptTimeout = timeout < TimeSpan.FromSeconds(1)
+        ? TimeSpan.FromSeconds(1)
+        : timeout;
+
     services
         .AddHttpClient<TInterface, TImplementation>(client =>
         {
@@ -152,8 +156,8 @@ static void AddDownstreamClient<TInterface, TImplementation>(
         .AddHttpMessageHandler<AccessTokenHandler>()
         .AddStandardResilienceHandler(options =>
         {
-            options.TotalRequestTimeout.Timeout = timeout + TimeSpan.FromMilliseconds(300);
-            options.AttemptTimeout.Timeout = timeout;
+            options.TotalRequestTimeout.Timeout = resilienceAttemptTimeout + TimeSpan.FromMilliseconds(300);
+            options.AttemptTimeout.Timeout = resilienceAttemptTimeout;
             options.Retry.MaxRetryAttempts = 2;
             options.Retry.DisableForUnsafeHttpMethods();
             options.CircuitBreaker.FailureRatio = 0.5;
