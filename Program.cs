@@ -159,7 +159,7 @@ static void AddDownstreamClient<TInterface, TImplementation>(
             options.TotalRequestTimeout.Timeout = resilienceAttemptTimeout + TimeSpan.FromMilliseconds(300);
             options.AttemptTimeout.Timeout = resilienceAttemptTimeout;
             options.Retry.MaxRetryAttempts = 2;
-            options.Retry.DisableForUnsafeHttpMethods();
+            //options.Retry.DisableForUnsafeHttpMethods();
             options.CircuitBreaker.FailureRatio = 0.5;
             options.CircuitBreaker.MinimumThroughput = 20;
             options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
