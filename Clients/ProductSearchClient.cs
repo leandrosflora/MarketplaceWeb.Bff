@@ -14,20 +14,27 @@ public sealed class ProductSearchClient(HttpClient httpClient) : IProductSearchC
 
     public async Task<ProductSearchResponse> SearchAsync(string query, CancellationToken cancellationToken)
     {
-        var path = $"/products/search?query={Uri.EscapeDataString(query)}";
-        using var response = await httpClient.GetAsync(path, cancellationToken);
-
-        await DownstreamResponse.EnsureSuccessAsync(response, "Product Search");
-
-        var content = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
-
-        return content.ValueKind switch
+        try
         {
-            JsonValueKind.Array => new ProductSearchResponse(
-                content.Deserialize<IReadOnlyList<ProductSearchItemDto>>(JsonOptions) ?? []),
-            JsonValueKind.Object => content.Deserialize<ProductSearchResponse>(JsonOptions) ?? new ProductSearchResponse([]),
-            _ => new ProductSearchResponse([])
-        };
+            var path = $"/products/search?query={Uri.EscapeDataString(query)}";
+            using var response = await httpClient.GetAsync(path, cancellationToken);
+
+            await DownstreamResponse.EnsureSuccessAsync(response, "Product Search");
+
+            var content = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+
+            return content.ValueKind switch
+            {
+                JsonValueKind.Array => new ProductSearchResponse(
+                    content.Deserialize<IReadOnlyList<ProductSearchItemDto>>(JsonOptions) ?? []),
+                JsonValueKind.Object => content.Deserialize<ProductSearchResponse>(JsonOptions) ?? new ProductSearchResponse([]),
+                _ => new ProductSearchResponse([])
+            };
+        }
+        catch (Exception e)
+        {
+            throw e;
+        } 
     }
 }
 
