@@ -90,7 +90,7 @@ builder.Services.AddTransient<CorrelationIdHandler>();
 builder.Services.AddTransient<AccessTokenHandler>();
 
 AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromSeconds(1));
-AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, "ProductSearch", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, "ProductSearch", TimeSpan.FromSeconds(3));
 AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromSeconds(1));
 AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, "Checkout", TimeSpan.FromSeconds(2));
 AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, "Order", TimeSpan.FromSeconds(1));
@@ -143,6 +143,8 @@ static void AddDownstreamClient<TInterface, TImplementation>(
     var resilienceAttemptTimeout = timeout < TimeSpan.FromSeconds(1)
         ? TimeSpan.FromSeconds(1)
         : timeout;
+    const int maxRetryAttempts = 2;
+    var retryDelay = TimeSpan.FromMilliseconds(100);
 
     services
         .AddHttpClient<TInterface, TImplementation>(client =>
@@ -151,15 +153,19 @@ static void AddDownstreamClient<TInterface, TImplementation>(
                 ?? throw new InvalidOperationException($"{serviceName} URL is missing");
 
             client.BaseAddress = new Uri(url);
-            client.Timeout = timeout;
+            client.Timeout = Timeout.InfiniteTimeSpan;
         })
         .AddHttpMessageHandler<CorrelationIdHandler>()
         .AddHttpMessageHandler<AccessTokenHandler>()
         .AddStandardResilienceHandler(options =>
         {
-            options.TotalRequestTimeout.Timeout = resilienceAttemptTimeout + TimeSpan.FromMilliseconds(300);
+            options.TotalRequestTimeout.Timeout =
+                (resilienceAttemptTimeout * (maxRetryAttempts + 1))
+                + (retryDelay * maxRetryAttempts)
+                + TimeSpan.FromMilliseconds(300);
             options.AttemptTimeout.Timeout = resilienceAttemptTimeout;
-            options.Retry.MaxRetryAttempts = 2;
+            options.Retry.MaxRetryAttempts = maxRetryAttempts;
+            options.Retry.Delay = retryDelay;
             //options.Retry.DisableForUnsafeHttpMethods();
             options.CircuitBreaker.FailureRatio = 0.5;
             options.CircuitBreaker.MinimumThroughput = 20;

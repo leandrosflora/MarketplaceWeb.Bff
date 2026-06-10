@@ -251,17 +251,18 @@ Todos os clientes downstream são registrados com:
 - Handler padrão de resiliência com:
   - timeout total;
   - timeout por tentativa;
-  - até 2 retries;
+  - até 2 retries com atraso inicial de 100 ms;
   - circuit breaker com razão de falha de 50%;
   - throughput mínimo de 20 requisições;
   - janela de amostragem de 30 segundos;
   - abertura do circuito por 15 segundos.
 
-Timeouts configurados no código:
+Timeouts por tentativa configurados no handler de resiliência. O `HttpClient.Timeout` fica desabilitado para evitar cancelamentos prematuros antes de o pipeline de resiliência aplicar timeout total, retry e circuit breaker.
 
-| Serviço | Timeout do `HttpClient` |
+| Serviço | Timeout por tentativa |
 | --- | --- |
 | ProductCatalog | 1 segundo |
+| ProductSearch | 3 segundos |
 | ShippingPromise | 1 segundo |
 | Checkout | 2 segundos |
 | Order | 1 segundo |
