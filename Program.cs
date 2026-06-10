@@ -3,8 +3,6 @@ using MarketplaceWeb.Bff.Api;
 using MarketplaceWeb.Bff.Application;
 using MarketplaceWeb.Bff.Clients;
 using MarketplaceWeb.Bff.Infrastructure;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Http.Resilience;
 
@@ -14,44 +12,6 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
-builder.Services
-    .AddAuthentication(options =>
-    {
-        options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-        options.DefaultChallengeScheme = OpenIdConnectDefaults.AuthenticationScheme;
-    })
-    .AddCookie(options =>
-    {
-        options.Cookie.Name = "__Host-marketplace-bff";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-        options.Cookie.SameSite = SameSiteMode.Lax;
-        options.SlidingExpiration = true;
-    })
-    .AddOpenIdConnect(options =>
-    {
-        options.Authority = builder.Configuration["Authentication:Authority"];
-        options.ClientId = builder.Configuration["Authentication:ClientId"];
-        options.ClientSecret = builder.Configuration["Authentication:ClientSecret"];
-        options.ResponseType = "code";
-        options.UsePkce = true;
-        options.SaveTokens = true;
-        options.Scope.Clear();
-        options.Scope.Add("openid");
-        options.Scope.Add("profile");
-        options.Scope.Add("marketplace-api");
-    });
-
-builder.Services.AddAuthorization();
-
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-CSRF-TOKEN";
-    options.Cookie.Name = "__Host-marketplace-csrf";
-    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-    options.Cookie.SameSite = SameSiteMode.Strict;
-});
 
 builder.Services.AddOutputCache(options =>
 {
@@ -67,10 +27,7 @@ builder.Services.AddRateLimiter(options =>
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
     options.AddPolicy("PerUser", context =>
     {
-        var key =
-            context.User.FindFirst("sub")?.Value
-            ?? context.Connection.RemoteIpAddress?.ToString()
-            ?? "anonymous";
+        var key = context.Connection.RemoteIpAddress?.ToString() ?? "anonymous";
 
         return RateLimitPartition.GetTokenBucketLimiter(
             key,
@@ -87,8 +44,6 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<CorrelationIdHandler>();
-builder.Services.AddTransient<AccessTokenHandler>();
-
 AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromSeconds(1));
 AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, "ProductSearch", TimeSpan.FromSeconds(3));
 AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromSeconds(1));
@@ -111,18 +66,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
-app.UseAuthorization();
-app.UseAntiforgery();
 app.UseRateLimiter();
 app.UseOutputCache();
-
-app.MapGet("/bff/csrf", (HttpContext context, Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery) =>
-    {
-        var tokens = antiforgery.GetAndStoreTokens(context);
-        return Results.Ok(new { token = tokens.RequestToken });
-    })
-    .RequireAuthorization();
 
 app.MapProductEndpoints();
 app.MapShippingEndpoints();
@@ -156,7 +101,6 @@ static void AddDownstreamClient<TInterface, TImplementation>(
             client.Timeout = Timeout.InfiniteTimeSpan;
         })
         .AddHttpMessageHandler<CorrelationIdHandler>()
-        .AddHttpMessageHandler<AccessTokenHandler>()
         .AddStandardResilienceHandler(options =>
         {
             options.TotalRequestTimeout.Timeout =

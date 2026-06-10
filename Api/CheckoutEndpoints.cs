@@ -1,6 +1,5 @@
 using MarketplaceWeb.Bff.Clients;
 using MarketplaceWeb.Bff.Contracts;
-using MarketplaceWeb.Bff.Infrastructure;
 
 namespace MarketplaceWeb.Bff.Api;
 
@@ -9,9 +8,7 @@ public static class CheckoutEndpoints
     public static IEndpointRouteBuilder MapCheckoutEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/web/v1/checkouts")
-            .RequireAuthorization()
-            .RequireRateLimiting("PerUser")
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            .RequireRateLimiting("PerUser");
 
         group.MapPost("/", async (
             CreateCheckoutRequest request,

@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using MarketplaceWeb.Bff.Application.Models;
 using MarketplaceWeb.Bff.Clients;
 
@@ -12,7 +11,6 @@ public sealed class ProductPageComposer(
         Guid skuId,
         int quantity,
         string? zipCode,
-        ClaimsPrincipal principal,
         CancellationToken cancellationToken)
     {
         var product = await productCatalog.GetAsync(skuId, cancellationToken);
@@ -31,7 +29,7 @@ public sealed class ProductPageComposer(
             {
                 var promise = await shippingPromise.CalculateAsync(
                     new ShippingPromiseRequest(
-                        GetOptionalUserId(principal),
+                        Guid.Empty,
                         product.SellerId,
                         new AddressDto(zipCode, string.Empty, string.Empty, "BR"),
                         [new ShippingPromiseItemDto(product.SkuId, quantity, product.Price)]),
@@ -61,11 +59,5 @@ public sealed class ProductPageComposer(
                 string.Equals(product.Status, "Active", StringComparison.OrdinalIgnoreCase)),
             shipping,
             warnings);
-    }
-
-    private static Guid GetOptionalUserId(ClaimsPrincipal principal)
-    {
-        var sub = principal.FindFirst("sub")?.Value;
-        return Guid.TryParse(sub, out var userId) ? userId : Guid.Empty;
     }
 }

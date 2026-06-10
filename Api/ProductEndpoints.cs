@@ -41,7 +41,6 @@ public static class ProductEndpoints
             Guid skuId,
             int? quantity,
             string? zipCode,
-            HttpContext context,
             ProductPageComposer composer,
             CancellationToken cancellationToken) =>
         {
@@ -49,7 +48,6 @@ public static class ProductEndpoints
                 skuId,
                 Math.Clamp(quantity ?? 1, 1, 99),
                 zipCode,
-                context.User,
                 cancellationToken);
 
             return response is null ? Results.NotFound() : Results.Ok(response);
