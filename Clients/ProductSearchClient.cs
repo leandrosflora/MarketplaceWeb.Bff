@@ -16,7 +16,7 @@ public sealed class ProductSearchClient(HttpClient httpClient) : IProductSearchC
     {
         try
         {
-            var path = $"/products/search?query={Uri.EscapeDataString(query)}";
+            var path = $"/v1/products/search?query={Uri.EscapeDataString(query)}&page=2&pageSize=2";
             using var response = await httpClient.GetAsync(path, cancellationToken);
 
             await DownstreamResponse.EnsureSuccessAsync(response, "Product Search");
