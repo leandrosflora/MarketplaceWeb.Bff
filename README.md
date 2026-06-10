@@ -1,6 +1,6 @@
 # MarketplaceWeb.Bff
 
-Backend for Frontend (BFF) do canal web do Marketplace. Este microserviço centraliza a experiência da aplicação web, autentica o usuário via OpenID Connect, protege chamadas mutáveis com antiforgery/CSRF, aplica rate limiting por usuário e compõe respostas orientadas à tela consumindo microserviços de domínio como catálogo, frete, checkout, pedidos, expedição e rastreamento.
+Backend for Frontend (BFF) do canal web do Marketplace. Neste momento, o microserviço está configurado sem autenticação/autorização e sem proteção CSRF para facilitar testes de integração com os serviços downstream de catálogo, frete, checkout, pedidos, expedição e rastreamento.
 
 ## Sumário
 
@@ -11,8 +11,8 @@ Backend for Frontend (BFF) do canal web do Marketplace. Este microserviço centr
 - [Estrutura do projeto](#estrutura-do-projeto)
 - [Configuração](#configuração)
 - [Como executar localmente](#como-executar-localmente)
-- [Autenticação e autorização](#autenticação-e-autorização)
-- [Proteção CSRF e idempotência](#proteção-csrf-e-idempotência)
+- [Modo atual sem autenticação/autorização](#modo-atual-sem-autenticaçãoautorização)
+- [Idempotência](#idempotência)
 - [Resiliência, cache e rate limiting](#resiliência-cache-e-rate-limiting)
 - [Endpoints expostos](#endpoints-expostos)
 - [Contratos principais](#contratos-principais)
@@ -30,13 +30,12 @@ O `MarketplaceWeb.Bff` é uma API ASP.NET Core 8 que atua como camada intermedi�
 Principais características:
 
 - API HTTP baseada em Minimal APIs.
-- Autenticação por cookie de sessão e desafio via OpenID Connect.
-- Propagação de `access_token` para microserviços internos.
+- Endpoints liberados para testes de integração, sem login no BFF.
+- Chamadas downstream sem propagação de bearer token.
 - Propagação de `X-Correlation-Id` para rastreabilidade entre serviços.
 - Composição de páginas de produto e pedido.
 - Cache curto para consulta pública de produto.
-- Limitação de taxa por usuário autenticado ou IP.
-- Proteção CSRF para operações mutáveis sensíveis.
+- Limitação de taxa por IP.
 - Clientes HTTP resilientes com timeout, retry e circuit breaker.
 - Respostas de erro padronizadas em `ProblemDetails`.
 
@@ -47,7 +46,7 @@ Principais características:
 - Expõe uma API web versionada em `/api/web/v1`.
 - Orquestra chamadas para serviços downstream.
 - Ajusta contratos para o consumo do front-end.
-- Mantém regras de borda relacionadas à experiência web, como cookies, CSRF, idempotência e composição de payloads.
+- Mantém regras de borda relacionadas à experiência web, como idempotência e composição de payloads.
 - Oculta detalhes dos serviços internos e reduz o número de chamadas necessárias pelo navegador.
 
 ### O que este BFF não deve fazer
@@ -63,7 +62,6 @@ Principais características:
 flowchart LR
     Browser[Aplicação Web / Browser]
     BFF[MarketplaceWeb.Bff]
-    IdP[Identity Provider OIDC]
     Catalog[Product Catalog]
     Search[Product Search]
     Shipping[Shipping Promise]
@@ -72,15 +70,14 @@ flowchart LR
     Shipment[Shipment]
     Tracking[Tracking]
 
-    Browser -->|Cookie seguro + CSRF| BFF
-    BFF -->|Challenge OIDC| IdP
-    BFF -->|Bearer token + X-Correlation-Id| Catalog
-    BFF -->|Bearer token + X-Correlation-Id| Search
-    BFF -->|Bearer token + X-Correlation-Id| Shipping
-    BFF -->|Bearer token + X-Correlation-Id| Checkout
-    BFF -->|Bearer token + X-Correlation-Id| Orders
-    BFF -->|Bearer token + X-Correlation-Id| Shipment
-    BFF -->|Bearer token + X-Correlation-Id| Tracking
+    Browser -->|HTTP sem login no BFF| BFF
+    BFF -->|X-Correlation-Id| Catalog
+    BFF -->|X-Correlation-Id| Search
+    BFF -->|X-Correlation-Id| Shipping
+    BFF -->|X-Correlation-Id| Checkout
+    BFF -->|X-Correlation-Id| Orders
+    BFF -->|X-Correlation-Id| Shipment
+    BFF -->|X-Correlation-Id| Tracking
 ```
 
 Fluxo típico de página de produto:
@@ -106,12 +103,10 @@ Fluxo típico de página de pedido:
 ## Stack técnica
 
 - **.NET 8 / ASP.NET Core**: runtime web e Minimal APIs.
-- **OpenID Connect + Cookie Authentication**: autenticação do usuário web.
 - **Swashbuckle**: Swagger/OpenAPI em ambiente de desenvolvimento.
 - **Microsoft.Extensions.Http.Resilience**: timeouts, retry e circuit breaker para `HttpClient`.
-- **Antiforgery ASP.NET Core**: proteção CSRF com header `X-CSRF-TOKEN`.
 - **Output Cache ASP.NET Core**: cache de curto prazo para produto público.
-- **Rate Limiting ASP.NET Core**: token bucket por usuário/IP.
+- **Rate Limiting ASP.NET Core**: token bucket por IP.
 
 ## Estrutura do projeto
 
@@ -137,11 +132,7 @@ As configurações principais ficam em `appsettings.json` e podem ser sobrescrit
 
 ### Autenticação
 
-| Chave | Descrição | Exemplo |
-| --- | --- | --- |
-| `Authentication:Authority` | URL do provedor OIDC. | `https://identity.marketplace.local` |
-| `Authentication:ClientId` | Client ID do BFF no provedor de identidade. | `marketplace-web-bff` |
-| `Authentication:ClientSecret` | Client secret do BFF. Deve vir de cofre/secret manager. | `__FROM_SECRET_MANAGER__` |
+Não há chaves de autenticação/autorização no modo atual. Configure apenas as URLs dos serviços downstream para testar as integrações.
 
 ### Serviços downstream
 
@@ -160,9 +151,6 @@ As configurações principais ficam em `appsettings.json` e podem ser sobrescrit
 No ASP.NET Core, `:` pode ser representado por `__` em variáveis de ambiente:
 
 ```bash
-export Authentication__Authority="https://identity.local"
-export Authentication__ClientId="marketplace-web-bff"
-export Authentication__ClientSecret="valor-secreto"
 export Services__ProductCatalog="http://localhost:5101"
 export Services__ProductSearch="http://localhost:5107"
 export Services__ShippingPromise="http://localhost:5102"
@@ -178,7 +166,6 @@ export Services__Tracking="http://localhost:5106"
 
 - SDK .NET 8 instalado.
 - Serviços downstream disponíveis ou mocks/stubs compatíveis com os contratos esperados.
-- Provedor OIDC configurado para o client `marketplace-web-bff`.
 
 ### Restaurar, compilar e executar
 
@@ -192,51 +179,27 @@ Em ambiente de desenvolvimento, o Swagger fica disponível porque a aplicação 
 
 ### Arquivo `.http`
 
-O arquivo `MarketplaceWeb.Bff.http` contém exemplos de chamadas para página de produto, pedido, rastreamento e etiqueta de expedição. Ajuste os GUIDs, host e credenciais conforme o ambiente.
+O arquivo `MarketplaceWeb.Bff.http` contém exemplos de chamadas para página de produto, pedido, rastreamento e etiqueta de expedição. Ajuste os GUIDs e o host conforme o ambiente.
 
-## Autenticação e autorização
+## Modo atual sem autenticação/autorização
 
-A aplicação usa autenticação por cookie como esquema padrão e OpenID Connect como desafio. Após autenticação, os tokens são salvos para que o BFF consiga propagar o `access_token` nas chamadas aos serviços internos.
+A aplicação não registra middleware de autenticação nem autorização neste momento. Todos os endpoints expostos pelo BFF podem ser chamados sem login para facilitar testes de integração.
 
-Configurações relevantes:
+Consequências intencionais deste modo:
 
-- Cookie de sessão: `__Host-marketplace-bff`.
-- Cookie `HttpOnly` para reduzir exposição a JavaScript.
-- `SecurePolicy.Always`, exigindo HTTPS.
-- `SameSite=Lax` para o cookie de autenticação.
-- Fluxo OIDC Authorization Code com PKCE.
-- Escopos solicitados: `openid`, `profile` e `marketplace-api`.
+- Não há desafio OIDC nem cookie de sessão.
+- Não há `RequireAuthorization()` nos grupos de endpoints.
+- O BFF não propaga `Authorization: Bearer <access_token>` para os serviços downstream.
+- A política de rate limiting usa o IP remoto como chave.
+- Quando a página de produto calcula frete, o `buyerId` enviado ao serviço de shipping promise é `Guid.Empty`.
 
-Endpoints protegidos com `RequireAuthorization()` exigem usuário autenticado. Endpoints sem autorização explícita ainda podem receber identidade se o usuário já estiver autenticado, mas não exigem login.
+## Idempotência
 
-## Proteção CSRF e idempotência
+Operações mutáveis de checkout e cancelamento de pedido continuam exigindo o header `Idempotency-Key`, para evitar duplicidade em retentativas do cliente.
 
-### CSRF
-
-A aplicação registra antiforgery com:
-
-- Header esperado: `X-CSRF-TOKEN`.
-- Cookie CSRF: `__Host-marketplace-csrf`.
-- `SecurePolicy.Always`.
-- `SameSite=Strict`.
-
-Para obter um token CSRF:
-
-```http
-GET /bff/csrf
-```
-
-O endpoint exige autenticação e retorna um JSON com o token da requisição. Operações mutáveis protegidas devem enviar esse valor no header `X-CSRF-TOKEN`.
-
-### Idempotência
-
-Operações que criam, confirmam ou cancelam recursos exigem o header:
-
-```http
-Idempotency-Key: <uuid-ou-chave-unica-da-operação>
-```
-
-Quando o header está ausente, o BFF retorna erro de requisição inválida. A chave é propagada aos serviços downstream responsáveis por garantir idempotência transacional.
+- Header esperado: `Idempotency-Key`.
+- O BFF rejeita a requisição com `400 Bad Request` quando esse header não é informado.
+- O valor é repassado ao serviço downstream responsável pela operação.
 
 ## Resiliência, cache e rate limiting
 
@@ -280,25 +243,19 @@ A política `PerUser` usa token bucket com:
 - 100 tokens por período.
 - Reposição de 100 tokens por minuto.
 - Fila de até 10 requisições.
-- Chave baseada no claim `sub`; se ausente, usa IP remoto; se ausente, usa `anonymous`.
+- Chave baseada no IP remoto; se ausente, usa `anonymous`.
 - Rejeição com HTTP `429 Too Many Requests`.
 
 ## Endpoints expostos
-
-### CSRF
-
-| Método | Rota | Auth | CSRF | Descrição |
-| --- | --- | --- | --- | --- |
-| `GET` | `/bff/csrf` | Sim | Não | Emite token CSRF para operações mutáveis. |
 
 ### Produtos
 
 Base: `/api/web/v1/products`
 
-| Método | Rota | Auth | Cache | Descrição |
-| --- | --- | --- | --- | --- |
-| `GET` | `/{skuId}` | Não obrigatório | `PublicProduct` | Retorna dados do produto a partir do catálogo. |
-| `GET` | `/{skuId}/page?quantity=1&zipCode=05726100` | Não obrigatório | Não | Retorna payload composto para página de produto. |
+| Método | Rota | Cache | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/{skuId}` | `PublicProduct` | Retorna dados do produto a partir do catálogo. |
+| `GET` | `/{skuId}/page?quantity=1&zipCode=05726100` | Não | Retorna payload composto para página de produto. |
 
 Observações:
 
@@ -310,38 +267,38 @@ Observações:
 
 Base: `/api/web/v1/shipping-promises`
 
-| Método | Rota | Auth | CSRF | Descrição |
-| --- | --- | --- | --- | --- |
-| `POST` | `/` | Não obrigatório | Não | Calcula uma promessa de frete diretamente no serviço de shipping promise. |
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `POST` | `/` | Calcula uma promessa de frete diretamente no serviço de shipping promise. |
 
 ### Checkout
 
 Base: `/api/web/v1/checkouts`
 
-| Método | Rota | Auth | CSRF | Idempotency-Key | Descrição |
-| --- | --- | --- | --- | --- | --- |
-| `POST` | `/` | Sim | Sim | Sim | Cria checkout. |
-| `GET` | `/{checkoutId}` | Sim | Não | Não | Consulta checkout. |
-| `POST` | `/{checkoutId}/confirm` | Sim | Sim | Sim | Confirma checkout. |
+| Método | Rota | Idempotency-Key | Descrição |
+| --- | --- | --- | --- |
+| `POST` | `/` | Sim | Cria checkout. |
+| `GET` | `/{checkoutId}` | Não | Consulta checkout. |
+| `POST` | `/{checkoutId}/confirm` | Sim | Confirma checkout. |
 
 ### Pedidos
 
 Base: `/api/web/v1/orders`
 
-| Método | Rota | Auth | CSRF | Idempotency-Key | Descrição |
-| --- | --- | --- | --- | --- | --- |
-| `GET` | `/` | Sim | Não | Não | Lista pedidos do usuário/contexto autenticado. |
-| `GET` | `/{orderId}` | Sim | Não | Não | Retorna página composta do pedido. |
-| `POST` | `/{orderId}/cancel` | Sim | Sim | Sim | Cancela pedido. |
-| `GET` | `/{orderId}/tracking` | Sim | Não | Não | Retorna apenas o rastreamento do pedido, quando disponível. |
+| Método | Rota | Idempotency-Key | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/` | Não | Lista pedidos. |
+| `GET` | `/{orderId}` | Não | Retorna página composta do pedido. |
+| `POST` | `/{orderId}/cancel` | Sim | Cancela pedido. |
+| `GET` | `/{orderId}/tracking` | Não | Retorna apenas o rastreamento do pedido, quando disponível. |
 
 ### Expedição
 
 Base: `/api/web/v1/shipments`
 
-| Método | Rota | Auth | Resposta | Descrição |
-| --- | --- | --- | --- | --- |
-| `GET` | `/{shipmentId}/label` | Sim | `application/pdf` | Baixa etiqueta da expedição. |
+| Método | Rota | Resposta | Descrição |
+| --- | --- | --- | --- |
+| `GET` | `/{shipmentId}/label` | `application/pdf` | Baixa etiqueta da expedição. |
 
 ## Contratos principais
 
@@ -458,8 +415,9 @@ Resposta esperada:
 
 Todas as chamadas downstream recebem:
 
-- `Authorization: Bearer <access_token>`, quando disponível no contexto autenticado.
 - `X-Correlation-Id`, reaproveitando o header de entrada ou o `TraceIdentifier` da requisição.
+
+O BFF não adiciona `Authorization` nas chamadas downstream no modo atual sem autenticação.
 
 ## Tratamento de erros
 
@@ -502,13 +460,6 @@ Embora o projeto não inclua configuração explícita de métricas, recomenda-s
 
 ## Exemplos de uso
 
-### Obter token CSRF
-
-```http
-GET https://localhost:7171/bff/csrf
-Accept: application/json
-```
-
 ### Consultar página de produto
 
 ```http
@@ -523,7 +474,6 @@ X-Correlation-Id: 7f0c7c8c888d4c198d6b8ef96fa1c001
 POST https://localhost:7171/api/web/v1/checkouts/
 Accept: application/json
 Content-Type: application/json
-X-CSRF-TOKEN: <token-obtido-em-/bff/csrf>
 Idempotency-Key: 0ccda6f4-1bea-4c42-8b06-7a2e765a97d7
 
 {
@@ -549,7 +499,6 @@ Idempotency-Key: 0ccda6f4-1bea-4c42-8b06-7a2e765a97d7
 ```http
 POST https://localhost:7171/api/web/v1/orders/00000000-0000-0000-0000-000000000005/cancel
 Accept: application/json
-X-CSRF-TOKEN: <token-obtido-em-/bff/csrf>
 Idempotency-Key: 9cf2bbfa-c16b-4c99-9d9f-3f8dc6f6af29
 ```
 
@@ -564,12 +513,8 @@ Accept: application/pdf
 
 Antes de promover para um ambiente:
 
-- [ ] Configurar `Authentication:Authority`, `ClientId` e `ClientSecret` via cofre de segredos.
-- [ ] Validar callback/redirect URI do OIDC no provedor de identidade.
 - [ ] Configurar URLs reais dos serviços downstream.
-- [ ] Garantir HTTPS fim a fim para cookies `__Host-*`.
 - [ ] Validar CORS/gateway conforme o domínio do front-end, se aplicável.
-- [ ] Validar emissão e envio do token CSRF pelo front-end.
 - [ ] Garantir geração de `Idempotency-Key` pelo front-end para operações mutáveis idempotentes.
 - [ ] Configurar observabilidade de logs, traces e métricas.
 - [ ] Validar limites de rate limiting para o volume esperado.

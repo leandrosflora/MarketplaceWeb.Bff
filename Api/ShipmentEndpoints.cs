@@ -7,7 +7,6 @@ public static class ShipmentEndpoints
     public static IEndpointRouteBuilder MapShipmentEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/web/v1/shipments")
-            .RequireAuthorization()
             .RequireRateLimiting("PerUser");
 
         group.MapGet("/{shipmentId:guid}/label", async (

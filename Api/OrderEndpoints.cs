@@ -1,6 +1,5 @@
 using MarketplaceWeb.Bff.Application;
 using MarketplaceWeb.Bff.Clients;
-using MarketplaceWeb.Bff.Infrastructure;
 
 namespace MarketplaceWeb.Bff.Api;
 
@@ -9,7 +8,6 @@ public static class OrderEndpoints
     public static IEndpointRouteBuilder MapOrderEndpoints(this IEndpointRouteBuilder app)
     {
         var group = app.MapGroup("/api/web/v1/orders")
-            .RequireAuthorization()
             .RequireRateLimiting("PerUser");
 
         group.MapGet("/", async (
@@ -41,8 +39,7 @@ public static class OrderEndpoints
                     cancellationToken);
 
                 return Results.Ok(response);
-            })
-            .AddEndpointFilter<AntiforgeryEndpointFilter>();
+            });
 
         group.MapGet("/{orderId:guid}/tracking", async (
             Guid orderId,
