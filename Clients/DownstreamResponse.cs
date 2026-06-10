@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Http;
+
 namespace MarketplaceWeb.Bff.Clients;
 
 public static class DownstreamResponse
@@ -18,13 +20,19 @@ public static class DownstreamResponse
 
 public sealed class DownstreamApiException : Exception
 {
-    public DownstreamApiException(string serviceName, int statusCode, string responseBody)
-        : base($"{serviceName} returned HTTP {statusCode}")
+    public DownstreamApiException(string serviceName, int statusCode, string responseBody, Exception? innerException = null)
+        : base($"{serviceName} returned HTTP {statusCode}", innerException)
     {
         ServiceName = serviceName;
         StatusCode = statusCode;
         ResponseBody = responseBody;
     }
+
+    public static DownstreamApiException Timeout(string serviceName, Exception innerException) =>
+        new(serviceName, StatusCodes.Status504GatewayTimeout, "The downstream request timed out.", innerException);
+
+    public static DownstreamApiException Unavailable(string serviceName, Exception innerException) =>
+        new(serviceName, StatusCodes.Status503ServiceUnavailable, "The downstream service is unavailable.", innerException);
 
     public string ServiceName { get; }
     public int StatusCode { get; }
