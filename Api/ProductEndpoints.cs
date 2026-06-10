@@ -13,6 +13,8 @@ public static class ProductEndpoints
         group.MapGet("/search", async (
             string? query,
             string? q,
+            int? page,
+            int? pageSize,
             IProductSearchClient productSearch,
             CancellationToken cancellationToken) =>
         {
@@ -23,7 +25,11 @@ public static class ProductEndpoints
                 throw new BadHttpRequestException("query is required");
             }
 
-            var response = await productSearch.SearchAsync(searchText.Trim(), cancellationToken);
+            var response = await productSearch.SearchAsync(
+                searchText.Trim(),
+                Math.Max(page ?? 1, 1),
+                Math.Clamp(pageSize ?? 20, 1, 100),
+                cancellationToken);
             return Results.Ok(response);
         });
 
