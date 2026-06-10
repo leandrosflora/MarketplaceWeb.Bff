@@ -3,7 +3,7 @@
 @orderId = 00000000-0000-0000-0000-000000000002
 @shipmentId = 00000000-0000-0000-0000-000000000003
 
-GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/products/search?query=smartphone
+GET {{MarketplaceWeb_Bff_HostAddress}}/api/web/v1/products/search?query=smartphone&page=1&pageSize=20
 Accept: application/json
 
 ###
