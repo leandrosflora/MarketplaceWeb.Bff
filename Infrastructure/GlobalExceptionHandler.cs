@@ -32,6 +32,12 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
                 Title = "Business operation rejected",
                 Detail = "The operation could not be completed."
             },
+            DownstreamApiException downstream when downstream.StatusCode == StatusCodes.Status504GatewayTimeout => new ProblemDetails
+            {
+                Status = StatusCodes.Status504GatewayTimeout,
+                Title = "Service timed out",
+                Detail = "The downstream service did not respond in time."
+            },
             DownstreamApiException => new ProblemDetails
             {
                 Status = StatusCodes.Status503ServiceUnavailable,

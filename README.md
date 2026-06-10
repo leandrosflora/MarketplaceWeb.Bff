@@ -254,11 +254,13 @@ Base: `/api/web/v1/products`
 
 | Método | Rota | Cache | Descrição |
 | --- | --- | --- | --- |
+| `GET` | `/search?query={texto}&page=1&pageSize=20` | Não | Retorna busca paginada de produtos. |
 | `GET` | `/{skuId}` | `PublicProduct` | Retorna dados do produto a partir do catálogo. |
 | `GET` | `/{skuId}/page?quantity=1&zipCode=05726100` | Não | Retorna payload composto para página de produto. |
 
 Observações:
 
+- `page` da busca é limitado ao mínimo de `1`; `pageSize` é limitado entre `1` e `100`.
 - `quantity` é limitado entre `1` e `99`.
 - Quando `zipCode` é informado, o BFF tenta calcular frete.
 - Falhas no cálculo de frete retornam a página de produto com warning, sem falhar toda a resposta.
@@ -407,6 +409,7 @@ Resposta esperada:
 | Cliente | Interface | Serviço configurado | Chamadas realizadas |
 | --- | --- | --- | --- |
 | `ProductCatalogClient` | `IProductCatalogClient` | `ProductCatalog` | `GET /products/{skuId}` |
+| `ProductSearchClient` | `IProductSearchClient` | `ProductSearch` | `GET /v1/products/search?query={texto}&page={page}&pageSize={pageSize}` |
 | `ShippingPromiseClient` | `IShippingPromiseClient` | `ShippingPromise` | `POST /shipping-promises` |
 | `CheckoutClient` | `ICheckoutClient` | `Checkout` | `POST /checkouts`, `GET /checkouts/{id}`, `POST /checkouts/{id}/confirm` |
 | `OrderClient` | `IOrderClient` | `Order` | `GET /orders`, `GET /orders/{id}`, `POST /orders/{id}/cancel` |
