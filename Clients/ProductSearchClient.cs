@@ -31,10 +31,14 @@ public sealed class ProductSearchClient(HttpClient httpClient) : IProductSearchC
                 _ => new ProductSearchResponse([])
             };
         }
-        catch (Exception e)
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
-            throw e;
-        } 
+            throw DownstreamApiException.Timeout("Product Search", exception);
+        }
+        catch (HttpRequestException exception)
+        {
+            throw DownstreamApiException.Unavailable("Product Search", exception);
+        }
     }
 }
 
