@@ -10,6 +10,23 @@ public static class ProductEndpoints
         var group = app.MapGroup("/api/web/v1/products")
             .RequireRateLimiting("PerUser");
 
+        group.MapGet("/search", async (
+            string? query,
+            string? q,
+            IProductSearchClient productSearch,
+            CancellationToken cancellationToken) =>
+        {
+            var searchText = !string.IsNullOrWhiteSpace(query) ? query : q;
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                throw new BadHttpRequestException("query is required");
+            }
+
+            var response = await productSearch.SearchAsync(searchText.Trim(), cancellationToken);
+            return Results.Ok(response);
+        });
+
         group.MapGet("/{skuId:guid}", async (
                 Guid skuId,
                 IProductCatalogClient productCatalog,
@@ -37,7 +54,6 @@ public static class ProductEndpoints
 
             return response is null ? Results.NotFound() : Results.Ok(response);
         });
-
 
         return app;
     }

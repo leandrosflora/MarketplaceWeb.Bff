@@ -90,6 +90,7 @@ builder.Services.AddTransient<CorrelationIdHandler>();
 builder.Services.AddTransient<AccessTokenHandler>();
 
 AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, "ProductSearch", TimeSpan.FromSeconds(1));
 AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromSeconds(1));
 AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, "Checkout", TimeSpan.FromSeconds(2));
 AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, "Order", TimeSpan.FromSeconds(1));

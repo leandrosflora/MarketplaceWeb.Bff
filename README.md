@@ -65,6 +65,7 @@ flowchart LR
     BFF[MarketplaceWeb.Bff]
     IdP[Identity Provider OIDC]
     Catalog[Product Catalog]
+    Search[Product Search]
     Shipping[Shipping Promise]
     Checkout[Checkout]
     Orders[Order]
@@ -74,6 +75,7 @@ flowchart LR
     Browser -->|Cookie seguro + CSRF| BFF
     BFF -->|Challenge OIDC| IdP
     BFF -->|Bearer token + X-Correlation-Id| Catalog
+    BFF -->|Bearer token + X-Correlation-Id| Search
     BFF -->|Bearer token + X-Correlation-Id| Shipping
     BFF -->|Bearer token + X-Correlation-Id| Checkout
     BFF -->|Bearer token + X-Correlation-Id| Orders
@@ -87,6 +89,12 @@ Fluxo típico de página de produto:
 2. O BFF busca o produto no serviço de catálogo.
 3. Se `zipCode` for informado, calcula a promessa de frete no serviço de shipping promise.
 4. O BFF devolve um payload consolidado com produto, frete opcional e avisos.
+
+Fluxo típico de busca de produtos:
+
+1. O front-end chama `GET /api/web/v1/products/search?query={texto}`.
+2. O BFF encaminha o texto para o Product Search Service.
+3. O BFF devolve a lista de produtos encontrados no formato orientado ao front-end.
 
 Fluxo típico de página de pedido:
 
@@ -140,6 +148,7 @@ As configurações principais ficam em `appsettings.json` e podem ser sobrescrit
 | Chave | Serviço | Exemplo padrão |
 | --- | --- | --- |
 | `Services:ProductCatalog` | Catálogo de produtos. | `http://product-catalog-service` |
+| `Services:ProductSearch` | Busca textual de produtos. | `http://product-search-service` |
 | `Services:ShippingPromise` | Cálculo/promessa de frete. | `http://shipping-promise-service` |
 | `Services:Checkout` | Checkout. | `http://checkout-service` |
 | `Services:Order` | Pedidos. | `http://order-service` |
@@ -155,6 +164,7 @@ export Authentication__Authority="https://identity.local"
 export Authentication__ClientId="marketplace-web-bff"
 export Authentication__ClientSecret="valor-secreto"
 export Services__ProductCatalog="http://localhost:5101"
+export Services__ProductSearch="http://localhost:5107"
 export Services__ShippingPromise="http://localhost:5102"
 export Services__Checkout="http://localhost:5103"
 export Services__Order="http://localhost:5104"
