@@ -1,3 +1,4 @@
+using System.Net.Security;
 using System.Threading.RateLimiting;
 using MarketplaceWeb.Bff.Api;
 using MarketplaceWeb.Bff.Application;
@@ -44,13 +45,13 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<CorrelationIdHandler>();
-AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, "ProductCatalog", TimeSpan.FromSeconds(1));
-AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, "ProductSearch", TimeSpan.FromSeconds(3));
-AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, "ShippingPromise", TimeSpan.FromSeconds(1));
-AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, "Checkout", TimeSpan.FromSeconds(2));
-AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, "Order", TimeSpan.FromSeconds(1));
-AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, "Shipment", TimeSpan.FromSeconds(1));
-AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, "Tracking", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, builder.Environment, "ProductCatalog", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, builder.Environment, "ProductSearch", TimeSpan.FromSeconds(3));
+AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, builder.Environment, "ShippingPromise", TimeSpan.FromSeconds(1));
+AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, builder.Environment, "Checkout", TimeSpan.FromSeconds(2));
+AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, builder.Environment, "Order", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, builder.Environment, "Shipment", TimeSpan.FromSeconds(1));
+AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, builder.Environment, "Tracking", TimeSpan.FromSeconds(1));
 
 builder.Services.AddScoped<ProductPageComposer>();
 builder.Services.AddScoped<OrderPageComposer>();
@@ -80,6 +81,7 @@ app.Run();
 static void AddDownstreamClient<TInterface, TImplementation>(
     IServiceCollection services,
     IConfiguration configuration,
+    IWebHostEnvironment environment,
     string serviceName,
     TimeSpan timeout)
     where TInterface : class
@@ -99,6 +101,19 @@ static void AddDownstreamClient<TInterface, TImplementation>(
 
             client.BaseAddress = new Uri(url);
             client.Timeout = Timeout.InfiniteTimeSpan;
+        })
+        .ConfigurePrimaryHttpMessageHandler(() =>
+        {
+            var handler = new HttpClientHandler();
+
+            if (environment.IsDevelopment())
+            {
+                handler.ServerCertificateCustomValidationCallback = static (request, _, _, sslPolicyErrors) =>
+                    sslPolicyErrors == SslPolicyErrors.None
+                    || request.RequestUri?.IsLoopback == true;
+            }
+
+            return handler;
         })
         .AddHttpMessageHandler<CorrelationIdHandler>()
         .AddStandardResilienceHandler(options =>
