@@ -21,7 +21,9 @@ public sealed class ProductCatalogClient(HttpClient httpClient) : IProductCatalo
 
         await DownstreamResponse.EnsureSuccessAsync(response, "Product Catalog");
 
-        return await response.Content.ReadFromJsonAsync<ProductDto>(cancellationToken);
+        var res =  await response.Content.ReadFromJsonAsync<ProductDto>(cancellationToken);
+
+        return res;
     }
 }
 
