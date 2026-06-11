@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MarketplaceWeb.Bff.Clients;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,24 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             {
                 Status = StatusCodes.Status503ServiceUnavailable,
                 Title = "Service temporarily unavailable"
+            },
+            HttpRequestException => new ProblemDetails
+            {
+                Status = StatusCodes.Status503ServiceUnavailable,
+                Title = "Service temporarily unavailable",
+                Detail = "The downstream service could not be reached."
+            },
+            TaskCanceledException => new ProblemDetails
+            {
+                Status = StatusCodes.Status504GatewayTimeout,
+                Title = "Service timed out",
+                Detail = "The downstream service did not respond in time."
+            },
+            JsonException => new ProblemDetails
+            {
+                Status = StatusCodes.Status502BadGateway,
+                Title = "Invalid downstream response",
+                Detail = "The downstream service returned a response the BFF could not parse."
             },
             _ => new ProblemDetails
             {
