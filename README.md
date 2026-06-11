@@ -152,7 +152,7 @@ No ASP.NET Core, `:` pode ser representado por `__` em variáveis de ambiente:
 
 ```bash
 export Services__ProductCatalog="https://localhost:7290"
-export Services__ProductSearch="http://localhost:5107"
+export Services__ProductSearch="http://localhost:5080"
 export Services__ShippingPromise="http://localhost:5102"
 export Services__Checkout="http://localhost:5103"
 export Services__Order="http://localhost:5104"
