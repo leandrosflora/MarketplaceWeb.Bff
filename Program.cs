@@ -45,6 +45,7 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<CorrelationIdHandler>();
+builder.Services.AddTransient<DownstreamSslDiagnosticHandler>();
 AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, builder.Environment, "ProductCatalog", TimeSpan.FromSeconds(1));
 AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, builder.Environment, "ProductSearch", TimeSpan.FromSeconds(3));
 AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, builder.Environment, "ShippingPromise", TimeSpan.FromSeconds(1));
@@ -115,6 +116,7 @@ static void AddDownstreamClient<TInterface, TImplementation>(
 
             return handler;
         })
+        .AddHttpMessageHandler<DownstreamSslDiagnosticHandler>()
         .AddHttpMessageHandler<CorrelationIdHandler>()
         .AddStandardResilienceHandler(options =>
         {
