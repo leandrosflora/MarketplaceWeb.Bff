@@ -6,7 +6,7 @@ namespace MarketplaceWeb.Bff.Clients;
 public interface IShipmentClient
 {
     Task<ShipmentDto?> GetAsync(Guid shipmentId, CancellationToken cancellationToken);
-    Task<Stream> GetLabelAsync(Guid shipmentId, CancellationToken cancellationToken);
+    Task<ShipmentLabelDto> GetLabelAsync(Guid shipmentId, CancellationToken cancellationToken);
 }
 
 public sealed class ShipmentClient(HttpClient httpClient) : IShipmentClient
@@ -25,15 +25,13 @@ public sealed class ShipmentClient(HttpClient httpClient) : IShipmentClient
         return await response.Content.ReadFromJsonAsync<ShipmentDto>(cancellationToken);
     }
 
-    public async Task<Stream> GetLabelAsync(Guid shipmentId, CancellationToken cancellationToken)
+    public async Task<ShipmentLabelDto> GetLabelAsync(Guid shipmentId, CancellationToken cancellationToken)
     {
         using var response = await httpClient.GetAsync($"/shipments/{shipmentId}/label", cancellationToken);
         await DownstreamResponse.EnsureSuccessAsync(response, "Shipment");
 
-        var memory = new MemoryStream();
-        await response.Content.CopyToAsync(memory, cancellationToken);
-        memory.Position = 0;
-        return memory;
+        return await response.Content.ReadFromJsonAsync<ShipmentLabelDto>(cancellationToken)
+            ?? throw new InvalidOperationException("Shipment returned an empty label response");
     }
 }
 
@@ -43,3 +41,5 @@ public sealed record ShipmentDto(
     string CarrierCode,
     string? TrackingCode,
     DateOnly PromisedDeliveryDate);
+
+public sealed record ShipmentLabelDto(string Url, int ExpiresInSeconds);

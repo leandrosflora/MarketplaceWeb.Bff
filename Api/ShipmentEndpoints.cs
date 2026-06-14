@@ -15,7 +15,7 @@ public static class ShipmentEndpoints
             CancellationToken cancellationToken) =>
         {
             var label = await shipmentClient.GetLabelAsync(shipmentId, cancellationToken);
-            return Results.File(label, "application/pdf", $"shipment-{shipmentId}-label.pdf");
+            return Results.Ok(label);
         });
 
         return app;

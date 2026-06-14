@@ -5,22 +5,12 @@ namespace MarketplaceWeb.Bff.Clients;
 
 public interface IOrderClient
 {
-    Task<OrderListDto> ListAsync(CancellationToken cancellationToken);
     Task<OrderDto?> GetAsync(Guid orderId, CancellationToken cancellationToken);
-    Task<OrderDto> CancelAsync(Guid orderId, string idempotencyKey, CancellationToken cancellationToken);
+    Task CancelAsync(Guid orderId, CancelOrderRequest request, string idempotencyKey, CancellationToken cancellationToken);
 }
 
 public sealed class OrderClient(HttpClient httpClient) : IOrderClient
 {
-    public async Task<OrderListDto> ListAsync(CancellationToken cancellationToken)
-    {
-        using var response = await httpClient.GetAsync("/orders", cancellationToken);
-        await DownstreamResponse.EnsureSuccessAsync(response, "Order");
-
-        return await response.Content.ReadFromJsonAsync<OrderListDto>(cancellationToken)
-            ?? new OrderListDto([]);
-    }
-
     public async Task<OrderDto?> GetAsync(Guid orderId, CancellationToken cancellationToken)
     {
         using var response = await httpClient.GetAsync($"/orders/{orderId}", cancellationToken);
@@ -35,20 +25,18 @@ public sealed class OrderClient(HttpClient httpClient) : IOrderClient
         return await response.Content.ReadFromJsonAsync<OrderDto>(cancellationToken);
     }
 
-    public async Task<OrderDto> CancelAsync(Guid orderId, string idempotencyKey, CancellationToken cancellationToken)
+    public async Task CancelAsync(Guid orderId, CancelOrderRequest request, string idempotencyKey, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Post, $"/orders/{orderId}/cancel");
-        request.Headers.Add("Idempotency-Key", idempotencyKey);
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/orders/{orderId}/cancel")
+        {
+            Content = JsonContent.Create(request)
+        };
+        httpRequest.Headers.Add("Idempotency-Key", idempotencyKey);
 
-        using var response = await httpClient.SendAsync(request, cancellationToken);
+        using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
         await DownstreamResponse.EnsureSuccessAsync(response, "Order");
-
-        return await response.Content.ReadFromJsonAsync<OrderDto>(cancellationToken)
-            ?? throw new InvalidOperationException("Order returned an empty response");
     }
 }
-
-public sealed record OrderListDto(IReadOnlyList<OrderDto> Orders);
 
 public sealed record OrderDto(
     Guid Id,
@@ -59,3 +47,5 @@ public sealed record OrderDto(
     string Currency,
     DateTimeOffset CreatedAt,
     Guid? ShipmentId);
+
+public sealed record CancelOrderRequest(string Reason);
