@@ -336,12 +336,23 @@ Resposta esperada:
 ```json
 {
   "checkoutId": "00000000-0000-0000-0000-000000000003",
-  "status": "Created",
   "itemsTotal": 100.0,
   "shippingPrice": 10.0,
   "totalAmount": 110.0,
   "currency": "BRL",
-  "expiresAt": "2026-06-10T12:00:00Z"
+  "selectedShipping": {
+    "promiseId": "promise_456",
+    "mode": "Standard",
+    "carrier": "CORREIOS",
+    "estimatedDeliveryDate": "2026-06-15",
+    "cost": 10.0
+  },
+  "items": [
+    {
+      "skuId": "00000000-0000-0000-0000-000000000002",
+      "quantity": 1
+    }
+  ]
 }
 ```
 
