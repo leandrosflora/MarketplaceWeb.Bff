@@ -177,6 +177,12 @@ dotnet run --project MarketplaceWeb.Bff.csproj
 
 Em ambiente de desenvolvimento, o Swagger fica disponível porque a aplicação habilita `UseSwagger()` e `UseSwaggerUI()` quando `ASPNETCORE_ENVIRONMENT=Development`.
 
+### Erro ao trocar chamadas downstream para HTTPS
+
+Se uma chamada para um microserviço falhar com `The SSL connection could not be established` e a inner exception `Cannot determine the frame size or a corrupted frame was received`, normalmente a URL configurada está usando `https://` em uma porta onde o microserviço está escutando somente HTTP. Valide a porta exposta no `launchSettings.json` do microserviço ou mantenha a entrada `Services:<NomeDoServiço>` com `http://` quando o serviço não publicar um endpoint HTTPS.
+
+Em `Development`, o BFF aceita certificados de desenvolvimento para hosts loopback; portanto, esse erro não indica certificado não confiável quando a URL aponta para `localhost`. Ele indica que a porta respondeu sem TLS durante o handshake HTTPS.
+
 ### Arquivo `.http`
 
 O arquivo `MarketplaceWeb.Bff.http` contém exemplos de chamadas para página de produto, pedido, rastreamento e etiqueta de expedição. Ajuste os GUIDs e o host conforme o ambiente.
