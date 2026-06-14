@@ -12,11 +12,20 @@ public sealed record CheckoutItemRequest(Guid SkuId, int Quantity);
 
 public sealed record ConfirmCheckoutRequest(string PaymentToken, string? PromiseId);
 
-public sealed record CheckoutResponse(
+public sealed record CheckoutPageResponse(
     Guid CheckoutId,
-    string Status,
     decimal ItemsTotal,
     decimal ShippingPrice,
     decimal TotalAmount,
     string Currency,
-    DateTimeOffset ExpiresAt);
+    ShippingOptionResponse SelectedShipping,
+    IReadOnlyList<CheckoutItemResponse> Items);
+
+public sealed record ShippingOptionResponse(
+    string? PromiseId,
+    string? Mode,
+    string? Carrier,
+    DateOnly? EstimatedDeliveryDate,
+    decimal Cost);
+
+public sealed record CheckoutItemResponse(Guid SkuId, int Quantity);
