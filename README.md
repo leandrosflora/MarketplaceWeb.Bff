@@ -216,7 +216,6 @@ Todos os clientes downstream são registrados com:
 - `BaseAddress` vindo de `Services:<NomeDoServiço>`.
 - Timeout específico por serviço.
 - Propagação de correlation id.
-- Propagação de token de acesso.
 - Handler padrão de resiliência com:
   - timeout total;
   - timeout por tentativa;
@@ -425,13 +424,13 @@ Resposta esperada:
 
 | Cliente | Interface | Serviço configurado | Chamadas realizadas |
 | --- | --- | --- | --- |
-| `ProductCatalogClient` | `IProductCatalogClient` | `ProductCatalog` | `GET /products/{skuId}` |
+| `ProductCatalogClient` | `IProductCatalogClient` | `ProductCatalog` | `GET /v1/products/{skuId}` |
 | `ProductSearchClient` | `IProductSearchClient` | `ProductSearch` | `GET /v1/products/search?query={texto}&page={page}&pageSize={pageSize}` |
-| `ShippingPromiseClient` | `IShippingPromiseClient` | `ShippingPromise` | `POST /shipping-promises` |
-| `CheckoutClient` | `ICheckoutClient` | `Checkout` | `POST /checkouts`, `GET /checkouts/{id}`, `POST /checkouts/{id}/confirm` |
-| `OrderClient` | `IOrderClient` | `Order` | `GET /orders`, `GET /orders/{id}`, `POST /orders/{id}/cancel` |
-| `ShipmentClient` | `IShipmentClient` | `Shipment` | `GET /shipments/{id}`, `GET /shipments/{id}/label` |
-| `TrackingClient` | `ITrackingClient` | `Tracking` | `GET /shipments/{shipmentId}/tracking` |
+| `ShippingPromiseClient` | `IShippingPromiseClient` | `ShippingPromise` | `POST /v1/shipping-promises` |
+| `CheckoutClient` | `ICheckoutClient` | `Checkout` | `POST /v1/checkouts`, `GET /v1/checkouts/{id}`, `POST /v1/checkouts/{id}/confirm` |
+| `OrderClient` | `IOrderClient` | `Order` | `GET /v1/orders`, `GET /v1/orders/{id}`, `POST /v1/orders/{id}/cancel` |
+| `ShipmentClient` | `IShipmentClient` | `Shipment` | `GET /v1/shipments/{id}`, `GET /v1/shipments/{id}/label` |
+| `TrackingClient` | `ITrackingClient` | `Tracking` | `GET /v1/shipments/{shipmentId}/tracking` |
 
 Todas as chamadas downstream recebem:
 

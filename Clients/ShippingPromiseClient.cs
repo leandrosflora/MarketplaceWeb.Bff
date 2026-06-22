@@ -11,7 +11,7 @@ public sealed class ShippingPromiseClient(HttpClient httpClient) : IShippingProm
 {
     public async Task<ShippingPromiseDto> CalculateAsync(ShippingPromiseRequest request, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.PostAsJsonAsync("/shipping-promises", request, cancellationToken);
+        using var response = await httpClient.PostAsJsonAsync("/v1/shipping-promises", request, cancellationToken);
 
         await DownstreamResponse.EnsureSuccessAsync(response, "Shipping Promise");
 

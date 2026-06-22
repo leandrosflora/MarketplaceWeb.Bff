@@ -10,6 +10,14 @@ public static class OrderEndpoints
         var group = app.MapGroup("/api/web/v1/orders")
             .RequireRateLimiting("PerUser");
 
+        group.MapGet("/", async (
+            IOrderClient orderClient,
+            CancellationToken cancellationToken) =>
+        {
+            var response = await orderClient.ListAsync(cancellationToken);
+            return Results.Ok(response);
+        });
+
         group.MapGet("/{orderId:guid}", async (
             Guid orderId,
             OrderPageComposer composer,
