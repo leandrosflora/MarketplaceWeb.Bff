@@ -17,14 +17,14 @@ public sealed class CheckoutClient(HttpClient httpClient) : ICheckoutClient
 
     public async Task<CheckoutPageResponse> CreateAsync(CreateCheckoutRequest request, string idempotencyKey, CancellationToken cancellationToken)
     {
-        var response = await PostAsync<CreateCheckoutRequest, CheckoutResponse>("/checkouts", request, idempotencyKey, cancellationToken);
+        var response = await PostAsync<CreateCheckoutRequest, CheckoutResponse>("/v1/checkouts", request, idempotencyKey, cancellationToken);
 
         return ToPageResponse(response, ToResponseItems(request.Items));
     }
 
     public async Task<CheckoutPageResponse?> GetAsync(Guid checkoutId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/checkouts/{checkoutId}", cancellationToken);
+        using var response = await httpClient.GetAsync($"/v1/checkouts/{checkoutId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -40,7 +40,7 @@ public sealed class CheckoutClient(HttpClient httpClient) : ICheckoutClient
 
     public async Task<CheckoutPageResponse> ConfirmAsync(Guid checkoutId, ConfirmCheckoutRequest request, string idempotencyKey, CancellationToken cancellationToken)
     {
-        var response = await PostAsync<ConfirmCheckoutRequest, CheckoutResponse>($"/checkouts/{checkoutId}/confirm", request, idempotencyKey, cancellationToken);
+        var response = await PostAsync<ConfirmCheckoutRequest, CheckoutResponse>($"/v1/checkouts/{checkoutId}/confirm", request, idempotencyKey, cancellationToken);
 
         return ToPageResponse(response, []);
     }

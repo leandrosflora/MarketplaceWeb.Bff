@@ -12,7 +12,7 @@ public sealed class TrackingClient(HttpClient httpClient) : ITrackingClient
 {
     public async Task<TrackingDto?> GetByShipmentAsync(Guid shipmentId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/tracking/shipments/{shipmentId}", cancellationToken);
+        using var response = await httpClient.GetAsync($"/v1/shipments/{shipmentId}/tracking", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {

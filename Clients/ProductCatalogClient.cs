@@ -12,7 +12,7 @@ public sealed class ProductCatalogClient(HttpClient httpClient) : IProductCatalo
 {
     public async Task<ProductDto?> GetAsync(Guid skuId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/products/{skuId}", cancellationToken);
+        using var response = await httpClient.GetAsync($"/v1/products/{skuId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
