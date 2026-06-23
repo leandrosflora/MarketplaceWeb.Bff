@@ -70,8 +70,9 @@ public sealed record ProductSearchItemDto(
     string ImageUrl,
     decimal Price,
     string SellerId,
+    string SkuId,
     int AvailableQuantity,
-    decimal Rating,
+    decimal? Rating,
     bool FreeShipping,
     bool Fulfillment,
     string ShippingPromise);
