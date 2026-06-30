@@ -29,7 +29,7 @@ public sealed class ProductPageComposer(
             {
                 var promise = await shippingPromise.CalculateAsync(
                     new ShippingPromiseRequest(
-                        Guid.Empty,
+                        product.SellerId,
                         product.SellerId,
                         new AddressDto(zipCode, string.Empty, string.Empty, "BR"),
                         [new ShippingPromiseItemDto(product.SkuId, quantity, product.Price)]),
