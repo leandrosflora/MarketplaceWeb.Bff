@@ -19,7 +19,7 @@ builder.Services.AddOutputCache(options =>
     options.AddPolicy(
         "PublicProduct",
         policy => policy
-            .Expire(TimeSpan.FromSeconds(30))
+            .Expire(TimeSpan.FromSeconds(50))
             .SetVaryByRouteValue("skuId"));
 });
 
@@ -46,13 +46,13 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddTransient<CorrelationIdHandler>();
 builder.Services.AddTransient<DownstreamSslDiagnosticHandler>();
-AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, builder.Environment, "ProductCatalog", TimeSpan.FromSeconds(5));
-AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, builder.Environment, "ProductSearch", TimeSpan.FromSeconds(3));
-AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, builder.Environment, "ShippingPromise", TimeSpan.FromSeconds(1));
-AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, builder.Environment, "Checkout", TimeSpan.FromSeconds(2));
-AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, builder.Environment, "Order", TimeSpan.FromSeconds(1));
-AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, builder.Environment, "Shipment", TimeSpan.FromSeconds(1));
-AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, builder.Environment, "Tracking", TimeSpan.FromSeconds(1));
+AddDownstreamClient<IProductCatalogClient, ProductCatalogClient>(builder.Services, builder.Configuration, builder.Environment, "ProductCatalog", TimeSpan.FromSeconds(50));
+AddDownstreamClient<IProductSearchClient, ProductSearchClient>(builder.Services, builder.Configuration, builder.Environment, "ProductSearch", TimeSpan.FromSeconds(50));
+AddDownstreamClient<IShippingPromiseClient, ShippingPromiseClient>(builder.Services, builder.Configuration, builder.Environment, "ShippingPromise", TimeSpan.FromSeconds(50));
+AddDownstreamClient<ICheckoutClient, CheckoutClient>(builder.Services, builder.Configuration, builder.Environment, "Checkout", TimeSpan.FromSeconds(50));
+AddDownstreamClient<IOrderClient, OrderClient>(builder.Services, builder.Configuration, builder.Environment, "Order", TimeSpan.FromSeconds(50));
+AddDownstreamClient<IShipmentClient, ShipmentClient>(builder.Services, builder.Configuration, builder.Environment, "Shipment", TimeSpan.FromSeconds(50));
+AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.Configuration, builder.Environment, "Tracking", TimeSpan.FromSeconds(50));
 
 builder.Services.AddScoped<ProductPageComposer>();
 builder.Services.AddScoped<OrderPageComposer>();
@@ -89,7 +89,7 @@ static void AddDownstreamClient<TInterface, TImplementation>(
     where TImplementation : class, TInterface
 {
     var resilienceAttemptTimeout = timeout < TimeSpan.FromSeconds(1)
-        ? TimeSpan.FromSeconds(1)
+        ? TimeSpan.FromSeconds(30)
         : timeout;
     const int maxRetryAttempts = 2;
     var retryDelay = TimeSpan.FromMilliseconds(100);
@@ -118,19 +118,20 @@ static void AddDownstreamClient<TInterface, TImplementation>(
         })
         .AddHttpMessageHandler<DownstreamSslDiagnosticHandler>()
         .AddHttpMessageHandler<CorrelationIdHandler>()
-        .AddStandardResilienceHandler(options =>
-        {
-            options.TotalRequestTimeout.Timeout =
-                (resilienceAttemptTimeout * (maxRetryAttempts + 1))
-                + (retryDelay * maxRetryAttempts)
-                + TimeSpan.FromMilliseconds(300);
-            options.AttemptTimeout.Timeout = resilienceAttemptTimeout;
-            options.Retry.MaxRetryAttempts = maxRetryAttempts;
-            options.Retry.Delay = retryDelay;
-            //options.Retry.DisableForUnsafeHttpMethods();
-            options.CircuitBreaker.FailureRatio = 0.5;
-            options.CircuitBreaker.MinimumThroughput = 20;
-            options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
-            options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
-        });
+        //.AddStandardResilienceHandler(options =>
+        //{
+        //    options.TotalRequestTimeout.Timeout =
+        //        (resilienceAttemptTimeout * (maxRetryAttempts + 10))
+        //        + (retryDelay * maxRetryAttempts)
+        //        + TimeSpan.FromSeconds(30);
+        //    options.AttemptTimeout.Timeout = resilienceAttemptTimeout;
+        //    options.Retry.MaxRetryAttempts = maxRetryAttempts;
+        //    options.Retry.Delay = retryDelay;
+        //    //options.Retry.DisableForUnsafeHttpMethods();
+        //    options.CircuitBreaker.FailureRatio = 0.5;
+        //    options.CircuitBreaker.MinimumThroughput = 20;
+        //    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        //    options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
+        //})
+        ;
 }
