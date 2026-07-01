@@ -4,13 +4,16 @@ namespace MarketplaceWeb.Bff.Contracts;
 
 public sealed record CreateCheckoutRequest(
     Guid BuyerId,
+    Guid SellerId,
     AddressDto ShippingAddress,
-    IReadOnlyList<CheckoutItemRequest> Items,
-    string PaymentMethodId);
+    IReadOnlyList<CheckoutItemRequest> Items);
 
-public sealed record CheckoutItemRequest(Guid SkuId, int Quantity);
+public sealed record CheckoutItemRequest(
+    Guid SkuId,
+    int Quantity,
+    decimal UnitPrice);
 
-public sealed record ConfirmCheckoutRequest(string PaymentToken, string? PromiseId);
+public sealed record ConfirmCheckoutRequest(string PaymentIntentId);
 
 public sealed record CheckoutPageResponse(
     Guid CheckoutId,
