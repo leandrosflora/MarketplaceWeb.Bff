@@ -11,10 +11,11 @@ public static class OrderEndpoints
             .RequireRateLimiting("PerUser");
 
         group.MapGet("/", async (
+            Guid buyerId,
             IOrderClient orderClient,
             CancellationToken cancellationToken) =>
         {
-            var response = await orderClient.ListAsync(cancellationToken);
+            var response = await orderClient.ListAsync(buyerId, cancellationToken);
             return Results.Ok(response);
         });
 

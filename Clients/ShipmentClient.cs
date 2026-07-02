@@ -13,7 +13,7 @@ public sealed class ShipmentClient(HttpClient httpClient) : IShipmentClient
 {
     public async Task<ShipmentDto?> GetAsync(Guid shipmentId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/v1/shipments/{shipmentId}", cancellationToken);
+        using var response = await httpClient.GetAsync($"/shipments/{shipmentId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -27,7 +27,7 @@ public sealed class ShipmentClient(HttpClient httpClient) : IShipmentClient
 
     public async Task<ShipmentLabelDto> GetLabelAsync(Guid shipmentId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/v1/shipments/{shipmentId}/label", cancellationToken);
+        using var response = await httpClient.GetAsync($"/shipments/{shipmentId}/label", cancellationToken);
         await DownstreamResponse.EnsureSuccessAsync(response, "Shipment");
 
         return await response.Content.ReadFromJsonAsync<ShipmentLabelDto>(cancellationToken)

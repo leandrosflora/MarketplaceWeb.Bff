@@ -5,16 +5,16 @@ namespace MarketplaceWeb.Bff.Clients;
 
 public interface IOrderClient
 {
-    Task<IReadOnlyList<OrderDto>> ListAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyList<OrderDto>> ListAsync(Guid buyerId, CancellationToken cancellationToken);
     Task<OrderDto?> GetAsync(Guid orderId, CancellationToken cancellationToken);
     Task CancelAsync(Guid orderId, CancelOrderRequest request, string idempotencyKey, CancellationToken cancellationToken);
 }
 
 public sealed class OrderClient(HttpClient httpClient) : IOrderClient
 {
-    public async Task<IReadOnlyList<OrderDto>> ListAsync(CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<OrderDto>> ListAsync(Guid buyerId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync("/v1/orders", cancellationToken);
+        using var response = await httpClient.GetAsync($"/orders?buyerId={buyerId}", cancellationToken);
 
         await DownstreamResponse.EnsureSuccessAsync(response, "Order");
 
@@ -23,7 +23,7 @@ public sealed class OrderClient(HttpClient httpClient) : IOrderClient
 
     public async Task<OrderDto?> GetAsync(Guid orderId, CancellationToken cancellationToken)
     {
-        using var response = await httpClient.GetAsync($"/v1/orders/{orderId}", cancellationToken);
+        using var response = await httpClient.GetAsync($"/orders/{orderId}", cancellationToken);
 
         if (response.StatusCode == HttpStatusCode.NotFound)
         {
@@ -37,7 +37,7 @@ public sealed class OrderClient(HttpClient httpClient) : IOrderClient
 
     public async Task CancelAsync(Guid orderId, CancelOrderRequest request, string idempotencyKey, CancellationToken cancellationToken)
     {
-        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/v1/orders/{orderId}/cancel")
+        using var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"/orders/{orderId}/cancel")
         {
             Content = JsonContent.Create(request)
         };
