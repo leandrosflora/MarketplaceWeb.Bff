@@ -2,6 +2,7 @@ using System.Net.Security;
 using System.Threading.RateLimiting;
 using MarketplaceWeb.Bff.Api;
 using MarketplaceWeb.Bff.Application;
+using MarketplaceWeb.Bff.Cart;
 using MarketplaceWeb.Bff.Clients;
 using MarketplaceWeb.Bff.Infrastructure;
 using Microsoft.AspNetCore.RateLimiting;
@@ -9,6 +10,7 @@ using Microsoft.Extensions.Http.Resilience;
 using Meli.Observability;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
+using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -75,6 +77,25 @@ AddDownstreamClient<ITrackingClient, TrackingClient>(builder.Services, builder.C
 builder.Services.AddScoped<ProductPageComposer>();
 builder.Services.AddScoped<OrderPageComposer>();
 
+var redisConnectionString = builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379";
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = redisConnectionString;
+    options.InstanceName = "cart:";
+});
+builder.Services.AddSingleton<IConnectionMultiplexer>(
+    _ => ConnectionMultiplexer.Connect(redisConnectionString));
+
+builder.Services.Configure<CartAbandonmentOptions>(builder.Configuration.GetSection(CartAbandonmentOptions.SectionName));
+builder.Services.Configure<KafkaOptions>(builder.Configuration.GetSection(KafkaOptions.SectionName));
+
+builder.Services.AddScoped<ICartRepository, RedisCartRepository>();
+builder.Services.AddScoped<ICheckoutPaymentMethodStore, RedisCheckoutPaymentMethodStore>();
+builder.Services.AddScoped<CartService>();
+builder.Services.AddSingleton<ICartEventPublisher, KafkaCartEventPublisher>();
+builder.Services.AddScoped<CartAbandonmentScanner>();
+builder.Services.AddHostedService<CartAbandonmentBackgroundService>();
+
 var app = builder.Build();
 
 app.UseExceptionHandler();
@@ -94,6 +115,7 @@ app.MapShippingEndpoints();
 app.MapCheckoutEndpoints();
 app.MapOrderEndpoints();
 app.MapShipmentEndpoints();
+app.MapCartEndpoints();
 
 app.Run();
 

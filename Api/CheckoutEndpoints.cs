@@ -1,3 +1,4 @@
+using MarketplaceWeb.Bff.Cart;
 using MarketplaceWeb.Bff.Clients;
 using MarketplaceWeb.Bff.Contracts;
 
@@ -9,6 +10,40 @@ public static class CheckoutEndpoints
     {
         var group = app.MapGroup("/api/web/v1/checkouts")
             .RequireRateLimiting("PerUser");
+
+        group.MapPost("/{checkoutId:guid}/payment-method", async (
+            Guid checkoutId,
+            PaymentMethodRequest request,
+            ICheckoutPaymentMethodStore paymentMethodStore,
+            CancellationToken cancellationToken) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.CardholderName)
+                || string.IsNullOrWhiteSpace(request.MaskedCardNumber)
+                || string.IsNullOrWhiteSpace(request.ExpiryMonthYear))
+            {
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["paymentMethod"] = ["Cardholder name, card number, and expiry are required."]
+                });
+            }
+
+            var paymentIntentId = $"pi_mock_{checkoutId:N}_{Guid.NewGuid():N}";
+            await paymentMethodStore.SetPaymentIntentIdAsync(checkoutId, paymentIntentId, cancellationToken);
+
+            return Results.Ok(new PaymentMethodResponse(checkoutId, paymentIntentId));
+        });
+
+        group.MapGet("/{checkoutId:guid}/payment-method", async (
+            Guid checkoutId,
+            ICheckoutPaymentMethodStore paymentMethodStore,
+            CancellationToken cancellationToken) =>
+        {
+            var paymentIntentId = await paymentMethodStore.GetPaymentIntentIdAsync(checkoutId, cancellationToken);
+
+            return paymentIntentId is null
+                ? Results.NotFound()
+                : Results.Ok(new PaymentMethodResponse(checkoutId, paymentIntentId));
+        });
 
         group.MapPost("/", async (
             CreateCheckoutRequest request,

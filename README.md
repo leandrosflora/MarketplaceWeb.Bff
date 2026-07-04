@@ -56,6 +56,8 @@ Principais características:
 - Substituir validações transacionais dos serviços downstream.
 - Expor segredos ou tokens ao cliente web.
 
+> **Exceção documentada:** o carrinho de compras (seção [Carrinho](#carrinho)) é a única persistência de estado mantida por este BFF (Redis) e o único evento Kafka publicado diretamente por ele. É estado efêmero de sessão/UX, não um registro de negócio durável — ver justificativa completa no `design.md` do change `shopping-cart-checkout`.
+
 ## Arquitetura e fluxo
 
 ```mermaid
@@ -287,6 +289,27 @@ Base: `/api/web/v1/checkouts`
 | `POST` | `/` | Sim | Cria checkout. |
 | `GET` | `/{checkoutId}` | Não | Consulta checkout. |
 | `POST` | `/{checkoutId}/confirm` | Sim | Confirma checkout. |
+| `POST` | `/{checkoutId}/payment-method` | Não | Gera e associa um `PaymentIntentId` (mock) ao checkout a partir dos dados de pagamento informados. Não introduz campo novo em `ConfirmCheckoutInput`/`CreateCheckoutRequest`. |
+| `GET` | `/{checkoutId}/payment-method` | Não | Consulta se o checkout já tem forma de pagamento associada; `404` quando ainda não tem. |
+
+### Carrinho
+
+Base: `/api/web/v1/cart`
+
+| Método | Rota | Descrição |
+| --- | --- | --- |
+| `GET` | `/?cartOwnerId={id}` | Retorna o carrinho atual, agrupado por vendedor. |
+| `POST` | `/items?cartOwnerId={id}` | Adiciona um item (soma quantidade se o SKU já existir). |
+| `PUT` | `/items/{skuId}?cartOwnerId={id}` | Atualiza a quantidade de um item; quantidade `0` remove a linha. |
+| `DELETE` | `/items/{skuId}?cartOwnerId={id}` | Remove um item. |
+| `POST` | `/merge?anonymousCartOwnerId={a}&buyerCartOwnerId={b}` | Mescla um carrinho anônimo no carrinho do comprador autenticado (soma quantidades de SKUs em comum). Chamado pelo `MarketplaceWeb` no momento do login. |
+| `POST` | `/checkout?cartOwnerId={id}` | Agrupa as linhas do carrinho por `SellerId` e cria um checkout por vendedor (reaproveita `POST /v1/checkouts` do `CheckoutService`, sem alterar o contrato). Apaga o carrinho ao final. |
+
+Observações:
+
+- `cartOwnerId` é uma string opaca definida pelo `MarketplaceWeb` (não pelo BFF): o valor do claim `BuyerId` quando o comprador está autenticado, ou um id anônimo emitido em cookie (`"anon:<guid>"`) quando não está. O BFF não tem estado de sessão/autenticação próprio — ver [design.md do change `shopping-cart-checkout`](../openspec/changes/shopping-cart-checkout/design.md) para o racional completo.
+- O carrinho é armazenado no Redis (`cart:<cartOwnerId>`) com TTL deslizante de 30 dias — é a única persistência de estado que este BFF mantém, e é uma exceção deliberada e documentada à regra "não persistir dados de domínio" acima: carrinho é estado efêmero de sessão/UX, não um registro de negócio durável.
+- Um `BackgroundService` interno varre os carrinhos periodicamente (`Cart:AbandonmentThresholdMinutes`, padrão 60 min) e publica `cart.abandoned` no Kafka quando um carrinho fica inativo além do limite — ver [kafka-events.md](../meli-envios-architecture/docs/contracts/kafka-events.md#carrinho) para o contrato do evento. Esse é o único producer Kafka do BFF, publicado diretamente (sem outbox), também documentado como exceção deliberada.
 
 ### Pedidos
 
