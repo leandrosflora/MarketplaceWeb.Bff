@@ -31,7 +31,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             {
                 Status = downstream.StatusCode,
                 Title = "Business operation rejected",
-                Detail = "The operation could not be completed."
+                Detail = ExtractDownstreamDetail(downstream.ResponseBody) ?? "The operation could not be completed."
             },
             DownstreamApiException downstream when downstream.StatusCode == StatusCodes.Status504GatewayTimeout => new ProblemDetails
             {
@@ -74,5 +74,20 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
 
         await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
         return true;
+    }
+
+    private static string? ExtractDownstreamDetail(string responseBody)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            return document.RootElement.TryGetProperty("detail", out var detail)
+                ? detail.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 }
