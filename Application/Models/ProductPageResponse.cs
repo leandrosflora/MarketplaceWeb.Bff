@@ -11,7 +11,8 @@ public sealed record ProductSummary(
     string Title,
     string Category,
     decimal Price,
-    bool AvailableForSale);
+    bool AvailableForSale,
+    string? ImageUrl);
 
 public sealed record ShippingSummary(
     bool Available,

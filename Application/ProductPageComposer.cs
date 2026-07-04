@@ -56,7 +56,8 @@ public sealed class ProductPageComposer(
                 product.Title,
                 product.Category,
                 product.Price,
-                string.Equals(product.Status, "Active", StringComparison.OrdinalIgnoreCase)),
+                string.Equals(product.Status, "Active", StringComparison.OrdinalIgnoreCase),
+                product.ImageUrl),
             shipping,
             warnings);
     }

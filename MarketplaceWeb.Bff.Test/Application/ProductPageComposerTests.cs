@@ -1,3 +1,4 @@
+using System.Text.Json;
 using MarketplaceWeb.Bff.Application;
 using MarketplaceWeb.Bff.Clients;
 using NSubstitute;
@@ -130,6 +131,65 @@ public class ProductPageComposerTests
         Assert.Equal(product.Title, result.Product.Title);
         Assert.Equal(product.Category, result.Product.Category);
         Assert.Equal(product.Price, result.Product.Price);
+    }
+
+    [Fact]
+    public async Task ComposeAsync_WithImageUrl_PropagatesUnchanged()
+    {
+        var product = BuildProduct() with { ImageUrl = "https://upload.wikimedia.org/wikipedia/commons/8/89/On_Clouds_running_shoes.jpg" };
+        _catalog.GetAsync(product.SkuId, Arg.Any<CancellationToken>()).Returns(product);
+
+        var result = await _sut.ComposeAsync(product.SkuId, 1, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal(product.ImageUrl, result.Product.ImageUrl);
+    }
+
+    [Fact]
+    public async Task ComposeAsync_WithoutImageUrl_ReturnsNullNotError()
+    {
+        var product = BuildProduct();
+        _catalog.GetAsync(product.SkuId, Arg.Any<CancellationToken>()).Returns(product);
+
+        var result = await _sut.ComposeAsync(product.SkuId, 1, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Null(result.Product.ImageUrl);
+    }
+
+    [Fact]
+    public async Task ComposeAsync_TitleAndStatusSurviveRealJsonDeserialization_RegressionForPreviouslyMissingFields()
+    {
+        // Regression test for a bug where ProductCatalogService's /logistics endpoint never
+        // carried Title/Status, so ProductDto.Title/Status always deserialized as null even
+        // though this record has always declared them. This mirrors the real wire shape
+        // (System.Text.Json Web defaults: camelCase, case-insensitive) instead of constructing
+        // ProductDto directly, which would mask the bug.
+        const string json = """
+            {
+              "skuId": "11111111-1111-1111-1111-111111111120",
+              "sellerId": "22222222-2222-2222-2222-222222222222",
+              "weightKg": 0.9,
+              "heightCm": 12.0,
+              "widthCm": 20.0,
+              "lengthCm": 30.0,
+              "category": "fashion",
+              "price": 349.90,
+              "restrictionCodes": [],
+              "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/8/89/On_Clouds_running_shoes.jpg",
+              "title": "Tenis Esportivo Demo",
+              "status": "Active"
+            }
+            """;
+
+        var product = JsonSerializer.Deserialize<ProductDto>(json, new JsonSerializerOptions(JsonSerializerDefaults.Web))!;
+        _catalog.GetAsync(product.SkuId, Arg.Any<CancellationToken>()).Returns(product);
+
+        var result = await _sut.ComposeAsync(product.SkuId, 1, null, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Tenis Esportivo Demo", result.Product.Title);
+        Assert.True(result.Product.AvailableForSale);
     }
 
     private static ProductDto BuildProduct() => new(
