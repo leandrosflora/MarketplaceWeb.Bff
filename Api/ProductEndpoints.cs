@@ -20,13 +20,8 @@ public static class ProductEndpoints
         {
             var searchText = !string.IsNullOrWhiteSpace(query) ? query : q;
 
-            if (string.IsNullOrWhiteSpace(searchText))
-            {
-                throw new BadHttpRequestException("query is required");
-            }
-
             var response = await productSearch.SearchAsync(
-                searchText.Trim(),
+                searchText?.Trim() ?? string.Empty,
                 Math.Max(page ?? 1, 1),
                 Math.Clamp(pageSize ?? 20, 1, 100),
                 cancellationToken);
