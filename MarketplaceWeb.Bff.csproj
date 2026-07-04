@@ -22,4 +22,8 @@
     <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Meli.Observability\Meli.Observability.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -6,15 +6,19 @@ using MarketplaceWeb.Bff.Clients;
 using MarketplaceWeb.Bff.Infrastructure;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Http.Resilience;
+using Meli.Observability;
 using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
 
+var serviceName = builder.Environment.ApplicationName;
 var otlpEndpoint = builder.Configuration["OpenTelemetry:OtlpEndpoint"] ?? "http://localhost:5107";
 
+builder.Logging.AddMeliStructuredLogging(serviceName, otlpEndpoint);
+
 builder.Services.AddOpenTelemetry()
-    .ConfigureResource(resource => resource.AddService(builder.Environment.ApplicationName))
+    .ConfigureResource(resource => resource.AddService(serviceName))
     .WithTracing(tracing => tracing
         .AddAspNetCoreInstrumentation(options => options.Filter = httpContext =>
             !httpContext.Request.Path.StartsWithSegments("/metrics") &&
